@@ -4,7 +4,7 @@
 library(shiny)
 library(shinydashboard)
 library(DT)
-library(igraph)
+# library(igraph)
 library(visNetwork)
 library(tna)
 library(rio)
@@ -127,7 +127,26 @@ ui <- dashboardPage(skin = "red",
       # TNA Results Plot Tab
       tabItem(
         tabName = "tna_plot",
+        
         fluidRow(
+          box(
+            fluidRow(
+              column(
+                width = 4,
+                sliderInput("cut", "Cut Value:", min = 0, max = 1, value = 0.1, step = 0.01)
+              ),
+              column(
+                width = 4,
+                sliderInput("minimum", "Minimum Value:", min = 0, max = 1, value = 0.05, step = 0.01)
+              ),
+              column(
+                width = 4,
+                selectInput("layout", "Layout", choices = c("circle","spring"), selected = "circle")
+              )
+              
+            ), 
+            width = 12,
+          ),
           box(
             title = "Visualization",
             width = 12,
@@ -168,8 +187,7 @@ ui <- dashboardPage(skin = "red",
           box(
             title = "Cliques Found",
             width = 8,
-            verbatimTextOutput("cliquesOutput"),
-            selectInput("cliqueSelect", "Choose Clique size:", choices = NULL, width = "30%"),  # Empty initially, populated later
+            selectInput("cliqueSelect", "Choose Clique:", choices = NULL, width = "30%"),  # Empty initially, populated later
             plotOutput("cliquesPlot")
           )
         )
@@ -279,7 +297,10 @@ server <- function(input, output, session) {
     req(rv$tna_result)
     
     # Plot the TNA results directly
-    plot(rv$tna_result)  # Use the plot method for the tna result
+    # plot(rv$tna_result)  # Use the plot method for the tna result
+    
+    plot(rv$tna_result, cut = input$cut, minimum = input$minimum, layout = input$layout)
+    
   })
   
   # Detect Communities
@@ -287,7 +308,7 @@ server <- function(input, output, session) {
     req(rv$tna_result)
     
     # Detect communities in the transition networks
-    rv$community_result <- communities(rv$tna_result, gamma = input$gamma)
+    rv$community_result <- tna::communities(rv$tna_result, gamma = input$gamma)
   })
   
   # Display Community Counts
@@ -308,7 +329,7 @@ server <- function(input, output, session) {
     req(rv$tna_result)
     
     # Detect communities in the transition networks
-    rv$community_result <- communities(rv$tna_result, gamma = input$gamma)
+    rv$community_result <- tna::communities(rv$tna_result, gamma = input$gamma)
     
     # Populate the dropdown with algorithm names and community counts
     algorithm_choices <- sapply(names(rv$community_result$counts), function(alg) {
@@ -340,7 +361,7 @@ server <- function(input, output, session) {
     req(input$cliqueThreshold)
     
     # Identify cliques based on user input
-    rv$cliques_result <- cliques(
+    rv$cliques_result <- tna::cliques(
       rv$tna_result,
       size = input$cliqueSize,
       threshold = input$cliqueThreshold,
