@@ -1,0 +1,35 @@
+.shiny-plot-output {
+  max-width: 100% !important;
+}
+.shiny-plot-output img {
+  max-width: 100% !important;
+}
+
+.shiny-html-output{ 
+  overflow: auto;
+}
+
+.resizable {
+  border: 1px solid #ccc;
+  background: lightgray;
+  position: relative;
+  display: inline-block;
+  padding: 10px;
+  margin: 10px;
+}
+
+.size-display {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 3px 7px;
+  font-size: 12px;
+  border-radius: 3px;
+  z-index: 10;
+}
+
+.checkboxcentralities .form-group  {
+    margin-bottom: 0px !important;
+}
