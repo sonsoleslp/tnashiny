@@ -3,15 +3,14 @@ library(shinydashboard)
 library(DT)
 library(tna)
 library(rio) 
+library(shinyjs) 
 library(shinyjqui)  # For arranging multiple plots
 
-
 dbHeader <- dashboardHeader(title = "TNA")
-dbHeader$children[[2]]$children <-  tags$span( tags$a(href='https://sonsoles.me/tna',
+dbHeader$children[[2]]$children <-  tags$span(tags$a(href='https://sonsoles.me/tna',
                                            tags$img(src='logo.png',height='44',width='40')), "TNA")
-
 # UI
-ui <- dashboardPage(skin = "purple",
+ui <- dashboardPage(skin = "purple", title = "TNA",
   dbHeader,
   dashboardSidebar(
     sidebarMenu(
@@ -93,7 +92,7 @@ ui <- dashboardPage(skin = "purple",
                 fileInput("matrixInput", "Upload transition matrix")
               ),
               selectInput("type", "Analysis Type:", choices = c("relative", "frequency")),
-              actionButton("analyze", "Analyze", class = "btn-warning")
+              actionButton("analyze", "Analyze", class = "btn-primary")
             )
           )),
           column(width = 9, fluidRow(
@@ -117,13 +116,12 @@ ui <- dashboardPage(skin = "purple",
                                      column(4,
                                       span("Transition Matrix", class="datatype"),
                                           img(src = "matrix.png", width = "100%", class = "thumb"),
-                                          p("You can also download directly a transition probability matrix.")
+                                          p("You can also upload directly a transition probability matrix.")
                                      ))))),
             conditionalPanel(condition = "input.inputType",
                              box(title = "Data Preview", width = 12, 
                                  DTOutput("dataPreview"),
                                  conditionalPanel(condition = "input.inputType != 'sample' & !input.dataPreview_state",
-                                 # conditionalPanel(condition = "console.log(input)",
                                                   span(icon("circle-info", class = "text-info"),
                                                        "No data selected yet")),
                                  tags$br(),
@@ -243,7 +241,7 @@ ui <- dashboardPage(skin = "purple",
             box(
               title = "Community Detection Settings", width = 12, 
               selectInput("communityAlgorithm", "Choose Algorithm:", choices = "spinglass"), 
-              numericInput("gamma", "Gamma (for certain algorithms):", value = 1, min = 0, max = 5)
+              numericInput("gamma", "Gamma (for certain algorithms):", value = 1, min = 0, max = 100)
             ),
             box(
               title = "Plotting Settings", width = 12,
@@ -275,7 +273,7 @@ ui <- dashboardPage(skin = "purple",
             title = "Clique Settings", width = 3,
             numericInput("cliqueSize", "Clique Size (n):", value = 3, min = 2, max = 10),
             numericInput("cliqueThreshold", "Threshold:", value = 0, min = 0, max = 1, step = 0.05),
-            actionButton("findCliques", "Find Cliques", class = "btn-warning")
+            actionButton("findCliques", "Find Cliques", class = "btn-primary")
           ),
           box(
             title = "Cliques Found", width = 9,
@@ -357,9 +355,11 @@ server <- function(input, output, session) {
         rv$tna_result <- build_model(data, type = req(input$type))  # Use tna(data) directly
       }, warning = function(w) {
         showNotification('there was a warning','',type = "error" , duration = 3)
+        logjs(w)
         return()
       }, error = function(e) {
         showNotification('there was an error','',type = "error" , duration = 3)
+        logjs(e)
         return()
       }, silent=TRUE)
     } else  if (input$inputType == "long") {
@@ -407,10 +407,11 @@ server <- function(input, output, session) {
         updateSelectInput(session,"compareSelect", choices = groupchoices)
         }, warning = function(w) {
           showNotification('there was a warning','',type = "error" , duration = 3)
+          logjs(w)
           return()
         }, error = function(e) {
-          print(e)
           showNotification('there was an error','',type = "error" , duration = 3)
+          logjs(e)
           return()
         }, silent=TRUE)
       # Perform TNA analysis
@@ -424,9 +425,11 @@ server <- function(input, output, session) {
         rv$tna_result <- tna(matrix_data, type = req(input$type))  # Use tna(matrix_data) directly
       }, warning = function(w) {
         showNotification('there was a warning','',type = "error" , duration = 3)
+        logjs(w)
         return()
       }, error = function(e) {
         showNotification('there was an error','',type = "error" , duration = 3)
+        logjs(e)
         return()
       }, silent=TRUE)
     } else if (input$inputType == "sample") {
@@ -435,9 +438,11 @@ server <- function(input, output, session) {
         rv$tna_result <- build_model(rv$data, type = req(input$type)) 
         }, warning = function(w) {
           showNotification('there was a warning','',type = "error" , duration = 3)
+          logjs(w)
           return()
         }, error = function(e) {
           showNotification('there was an error','',type = "error" , duration = 3)
+          logjs(e)
           return()
         }, silent=TRUE)
     }
@@ -556,9 +561,11 @@ server <- function(input, output, session) {
       plot(centrality_result, ncol = input$nColsCentralities)
     }, warning = function(w) {
       showNotification('there was a warning','',type = "error" , duration = 3)
+      logjs(w)
       return()
     }, error = function(e) {
       showNotification('there was an error','',type = "error" , duration = 3)
+      logjs(e)
       return()
     }, silent=TRUE)
   }, res = 100)
@@ -586,9 +593,11 @@ server <- function(input, output, session) {
            layout = input$layout, mar = c(2.5,2.5,2.5,2.5))
     }, warning = function(w) {
       showNotification('there was a warning','',type = "error" , duration = 3)
+      logjs(w)
       return()
     }, error = function(e) {
       showNotification('there was an error','',type = "error" , duration = 3)
+      logjs(e)
       return()
     }, silent=TRUE)
   }, res = 600)
@@ -610,9 +619,11 @@ server <- function(input, output, session) {
            layout = input$layoutEbet, mar = c(2.5,2.5,2.5,2.5))
     }, warning = function(w) {
       showNotification('there was a warning','',type = "error" , duration = 3)
+      logjs(w)
       return()
     }, error = function(e) {
       showNotification('there was an error','',type = "error" , duration = 3)
+      logjs(e)
       return()
     }, silent=TRUE)
   }, res = 600)
@@ -662,9 +673,11 @@ server <- function(input, output, session) {
            layout = input$layoutCom)
     }, warning = function(w) {
       showNotification('there was a warning','',type = "error" , duration = 3)
+      logjs(w)
       return()
     }, error = function(e) {
       showNotification('there was an error','',type = "error" , duration = 3)
+      logjs(e)
       return()
     }, silent=TRUE)
   }, res = 600)
@@ -707,8 +720,8 @@ server <- function(input, output, session) {
   # Plot Cliques
   output$cliquesPlot <- renderPlot({
     req(rv$cliques_result)
-    if (as.integer(input$cliqueSelect) == 0){
-      NULL
+    if (is.null(input$cliqueSelect) | as.integer(input$cliqueSelect) == 0){
+      return(NULL)
     } else {
       
       tryCatch({
@@ -716,9 +729,11 @@ server <- function(input, output, session) {
              first = as.integer(input$cliqueSelect), n = 1, ask = FALSE, mar = c(2.5,2.5,2.5,2.5))
       }, warning = function(w) {
         showNotification('there was a warning','',type = "error" , duration = 3)
+        logjs(w)
         return()
       }, error = function(e) {
         showNotification('there was an error','',type = "error" , duration = 3)
+        logjs(e)
         return()
       }, silent=TRUE)
     }
@@ -727,7 +742,6 @@ server <- function(input, output, session) {
   observeEvent(input$compareSelect, {
     if(is.null(rv$data$meta_data)) {return();}
     choices = unique(data.frame(rv$data$meta_data)[,input$compareSelect])
-    print(choices)
     updateSelectInput(session, "group1", choices = choices, selected = ifelse(!is.null(choices) | (length(choices)>0), choices[1], rlang::missing_arg()))
     updateSelectInput(session, "group2", choices = choices, selected = ifelse(!is.null(choices) | (length(choices)>1), choices[2], rlang::missing_arg()))
   })
@@ -745,9 +759,11 @@ server <- function(input, output, session) {
                      mar = c(2.5,2.5,2.5,2.5))
       }, warning = function(w) {
         showNotification('there was a warning','',type = "error" , duration = 3)
+        logjs(w)
         return()
       }, error = function(e) {
         showNotification('there was an error','',type = "error" , duration = 3)
+        logjs(e)
         return()
       }, silent=TRUE)
   }, res = 600)

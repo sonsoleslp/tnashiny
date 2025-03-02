@@ -43,3 +43,10 @@
 .thumb {
   padding: 1em;
 }
+
+.btn-primary {
+  color: white;
+}
+.box-title {
+  font-weight: bold;
+}
