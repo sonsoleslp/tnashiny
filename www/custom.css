@@ -33,3 +33,13 @@
 .checkboxcentralities .form-group  {
     margin-bottom: 0px !important;
 }
+
+.datatype {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  display: block;
+}
+.thumb {
+  padding: 1em;
+}
