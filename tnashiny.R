@@ -2,9 +2,13 @@ library(shiny)
 library(shinydashboard)
 library(DT)
 library(tna)
+library(bslib)
 library(rio) 
 library(shinyjs) 
 library(shinyjqui)  # For arranging multiple plots
+
+set.seed(19)
+mar = c(2.5,2.5,2.5,2.5)
 
 dbHeader <- dashboardHeader(title = "TNA")
 dbHeader$children[[2]]$children <-  tags$span(tags$a(href='https://sonsoles.me/tna',
@@ -22,7 +26,8 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
       menuItem("Community Detection", tabName = "communities", icon = icon("users")),
       menuItem("Edge Betweenness", tabName = "edgebet", icon = icon("people-arrows")),  
       menuItem("Cliques", tabName = "cliques", icon = icon("sitemap")),
-      menuItem("Comparison", tabName = "comparison", icon = icon("balance-scale"))
+      menuItem("Comparison", tabName = "comparison", icon = icon("balance-scale")),
+      menuItem("Validation", tabName = "bootstrap", icon = icon("check-circle"))
      
     )
   ),
@@ -168,7 +173,7 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
             title = "Centrality Measures", width = 12,
             div(tableOutput("centralityPrint"), align="center", width = 12),
             div(jqui_resizable(  
-              plotOutput("centralityPlot", width="800px", height = "800px"),  # Render the TNA plot here
+              plotOutput("centralityPlot", width = "800px", height = "800px"),  # Render the TNA plot here
               options = list(ghost = TRUE, helper = "resizable-helper")   
             ), align="center", width = 12)
           )
@@ -195,7 +200,7 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
                   title = "Visualization", 
                   width = 12,
                   div(jqui_resizable(  
-                    plotOutput("tnaPlot", width="600px", height = "600px"),  # Render the TNA plot here
+                    plotOutput("tnaPlot", width = "600px", height = "600px"),  # Render the TNA plot here
                     options = list(ghost = TRUE, helper= "resizable-helper")   
                   ), align = "center")
                 ),
@@ -222,7 +227,7 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
                 title = "Visualization", 
                 width = 12,
                 div(jqui_resizable(  
-                  plotOutput("edgeBetPlot", width="600px", height = "600px"),  # Render the TNA plot here
+                  plotOutput("edgeBetPlot", width = "600px", height = "600px"),  # Render the TNA plot here
                   options = list(ghost = TRUE, helper= "resizable-helper")   
                 ), align = "center")
               ),
@@ -260,7 +265,7 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
             # Second Block
             box(
               title = "Community Detection Results", width = 9,
-              div(jqui_resizable(plotOutput("communityPlot", width = "700px", height = "700px"),
+              div(jqui_resizable(plotOutput("communityPlot", width = "600px", height = "600px"),
                              options = list(ghost = TRUE, helper = "resizable-helper")),align="center",width = 12)
             )
           )
@@ -269,22 +274,38 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
       tabItem(
         tabName = "cliques",
         fluidRow(
-          box(
-            title = "Clique Settings", width = 3,
-            numericInput("cliqueSize", "Clique Size (n):", value = 3, min = 2, max = 10),
-            numericInput("cliqueThreshold", "Threshold:", value = 0, min = 0, max = 1, step = 0.05),
-            actionButton("findCliques", "Find Cliques", class = "btn-primary")
-          ),
-          box(
-            title = "Cliques Found", width = 9,
-            selectInput("cliqueSelect", "Choose Clique:", choices = NULL, width = "30%"),  # Empty initially, populated later
-            div(jqui_resizable(plotOutput("cliquesPlot"), options = list(ghost = TRUE, helper = "resizable-helper")),align="center",width = 12)
+          column(
+            width = 3,
+            fluidRow(
+              box(
+                title = "Clique Settings", width = 12,
+                numericInput("cliqueSize", "Clique Size (n):", value = 3, min = 2, max = 10),
+                numericInput("cliqueThreshold", "Threshold:", value = 0, min = 0, max = 1, step = 0.05),
+                actionButton("findCliques", "Find Cliques", class = "btn-primary")
+              ),
+              box(title = "Plotting Settings", width = 12, 
+                  sliderInput("cutClique", "Cut Value", min = 0, max = 1, value = 0.1, step = 0.01),
+                  sliderInput("minimumClique", "Minimum Value", min = 0, max = 1, value = 0, step = 0.01),
+                  sliderInput("edge.labelClique", "Edge label size", min = 0, max = 10, value = 1, step = 0.1),
+                  sliderInput("vsizeClique", "Node  size", min = 0, max = 30, value = 8, step = 0.1),
+                  sliderInput("node.labelClique", "Node label size", min = 0, max = 10, value = 1, step = 0.1),
+                  selectInput("layoutClique", "Layout", choices = c("circle", "spring"), selected = "circle")
+              ))),
+            column(
+              width = 9,
+              fluidRow(
+                box(
+                  title = "Cliques Found", width = 12,
+                  selectInput("cliqueSelect", "Choose Clique:", choices = NULL, width = "30%"),  # Empty initially, populated later
+                  div(jqui_resizable(plotOutput("cliquesPlot"), options = list(ghost = TRUE, helper = "resizable-helper")),align="center",width = 12)
+                )
+            )
           )
         )
       ),
       tabItem(
         tabName = "comparison",
-        conditionalPanel( condition = "input.inputType == 'long'",
+        conditionalPanel( condition = "(input.inputType == 'long') | (input.inputType == 'sample') ",
           fluidRow(
             column(
               width = 3,
@@ -292,10 +313,18 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
                 box(title = "Comparison Settings", width = 12, 
                     selectInput("compareSelect", "Choose grouping column:", choices = NULL),
                     selectInput("group1", "Choose group 1:", choices = NULL),
-                    selectInput("group2", "Choose group 2:", choices = NULL)),
+                    selectInput("group2", "Choose group 2:", choices = NULL),
+                    input_switch("compare_sig", "Permutation test"),
+                    conditionalPanel(condition = "input.compare_sig",
+                                     numericInput("iterPerm", "Iteration:", min = 0, max = 10000, value = 1000, step = 100), 
+                                     numericInput("levelPerm", "Level:", min = 0, max = 1, value = 0.05, step = 0.01), 
+                                     input_switch("pairedPerm", "Paired test")
+                                     ),
+                    
+                    ),
                 box(title = "Plotting Settings", width = 12, 
                     sliderInput("cutGroup", "Cut Value", min = 0, max = 1, value = 0.1, step = 0.01),
-                    sliderInput("minimumGroup", "Minimum Value", min = 0, max = 1, value = 0.05, step = 0.01),
+                    sliderInput("minimumGroup", "Minimum Value", min = 0, max = 1, value = 0, step = 0.01),
                     sliderInput("edge.labelGroup", "Edge label size", min = 0, max = 10, value = 1, step = 0.1),
                     sliderInput("vsizeGroup", "Node  size", min = 0, max = 30, value = 8, step = 0.1),
                     sliderInput("node.labelGroup", "Node label size", min = 0, max = 10, value = 1, step = 0.1),
@@ -308,7 +337,7 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
               fluidRow(
                 box(title = "Comparison Plot", width = 12, 
                     div(jqui_resizable(  
-                      plotOutput("comparisonPlot", width="800px", height = "800px"),  # Render the TNA plot here
+                      plotOutput("comparisonPlot", width = "800px", height = "800px"),  # Render the TNA plot here
                       options = list(ghost = TRUE, helper = "resizable-helper")   
                     ), align="center", width = 12)
                 )
@@ -316,11 +345,57 @@ ui <- dashboardPage(skin = "purple", title = "TNA",
             )
           )
         ),
-        conditionalPanel( condition = "input.inputType != 'long'",
+        conditionalPanel( condition = "input.inputType != 'long' & input.inputType != 'sample' ",
                           box(span(icon("circle-info",class = "text-danger"),
                                 "Comparison operations are only supported in long data"), width = 7)
         ) 
-      )
+      ),
+      tabItem(
+        tabName = "bootstrap",
+        conditionalPanel( condition = "input.inputType != 'matrix'",
+        fluidRow(
+          column(fluidRow(
+            box(
+              title = "Bootstrapping", 
+              numericInput("iterBoot", "Iteration:", min = 0, max = 10000, value = 1000, step = 100),
+              numericInput("levelBoot", "Level:", min = 0, max = 1, value = 0.05, step = 0.01),
+              selectInput("methodBoot", "Method", choices = c("stability","threshold"), selected = "stability"),
+              conditionalPanel( condition = "input.methodBoot == 'threshold'", 
+                                numericInput("thresBoot", "Threshold:", min = 0, max = 1, value = 0.1, step = 0.01)),
+              conditionalPanel( condition = "input.methodBoot == 'stability'", 
+                                h4("Consistency Range"),
+                                numericInput("constLowerBoot", "Lower:", min = 0, max = 10, value = 0.75, step = 0.01),
+                                numericInput("constUpperBoot", "Upper:", min = 0, max = 10, value = 1.25, step = 0.01)),
+              actionButton("bootstrapButton", "Bootstrap", class = "btn-primary"),
+            width = 12),
+            box(
+              title = "Settings", width = 12,
+              sliderInput("cutBoot", "Cut Value", min = 0, max = 1, value = 0.1, step = 0.01),
+              sliderInput("minimumBoot", "Minimum Value", min = 0, max = 1, value = 0.05, step = 0.01),
+              sliderInput("edge.labelBoot", "Edge label size", min = 0, max = 10, value = 1, step = 0.1),
+              sliderInput("vsizeBoot", "Node  size", min = 0, max = 30, value = 8, step = 0.1),
+              sliderInput("node.labelBoot", "Node label size", min = 0, max = 10, value = 1, step = 0.1),
+              selectInput("layoutBoot", "Layout", choices = c("circle", "spring"), selected = "circle")),width = 12),
+            width = 3
+          ), 
+          column(
+            fluidRow(
+              box(
+                title = "Visualization", 
+                width = 12,
+                div(jqui_resizable(  
+                  plotOutput("tnaPlotBoot", width = "600px", height = "600px"),  # Render the TNA plot here
+                  options = list(ghost = TRUE, helper= "resizable-helper")   
+                ), align = "center")
+              ),
+              width = 12), 
+            width = 9)
+        )),
+        conditionalPanel( condition = "input.inputType == 'matrix'",
+                          box(span(icon("circle-info", class = "text-danger"),
+                                   "Validation operations are only supported when the full data is provided"), width = 7)
+                          )
+        )
     )
   )
 )
@@ -336,6 +411,7 @@ server <- function(input, output, session) {
     cliques_result = NULL,
     clique_plots = list(),
     community_result = NULL,
+    bootstrap_result = NULL
   )
   observeEvent(input$inputType, {
     rv$original <- NULL
@@ -354,7 +430,7 @@ server <- function(input, output, session) {
       tryCatch({
         rv$tna_result <- build_model(data, type = req(input$type))  # Use tna(data) directly
       }, warning = function(w) {
-        showNotification('there was a warning','',type = "error" , duration = 3)
+        # showNotification('there was a warning','',type = "error" , duration = 3)
         logjs(w)
         return()
       }, error = function(e) {
@@ -406,7 +482,7 @@ server <- function(input, output, session) {
         groupchoices <- groupchoices[sapply(groupchoices, \(x) !(x%in% whitelist))]
         updateSelectInput(session,"compareSelect", choices = groupchoices)
         }, warning = function(w) {
-          showNotification('there was a warning','',type = "error" , duration = 3)
+          # showNotification('there was a warning','',type = "error" , duration = 3)
           logjs(w)
           return()
         }, error = function(e) {
@@ -424,7 +500,7 @@ server <- function(input, output, session) {
         # Perform TNA analysis with matrix input
         rv$tna_result <- tna(matrix_data, type = req(input$type))  # Use tna(matrix_data) directly
       }, warning = function(w) {
-        showNotification('there was a warning','',type = "error" , duration = 3)
+        # showNotification('there was a warning','',type = "error" , duration = 3)
         logjs(w)
         return()
       }, error = function(e) {
@@ -434,15 +510,28 @@ server <- function(input, output, session) {
       }, silent=TRUE)
     } else if (input$inputType == "sample") {
       tryCatch({
-        rv$data <- rv$original
+        rv$data <- structure(
+          list(
+            long_data = NULL,
+            sequence_data =  rv$original,
+            meta_data = data.frame(Achiever = c(rep("High",1000), rep("Low",1000))),
+            statistics =NULL
+          ),
+          class = "tna_data")
+         
+        groupchoices <- names(rv$data$meta_data)
+        updateSelectInput(session,"compareSelect", choices = groupchoices)
         rv$tna_result <- build_model(rv$data, type = req(input$type)) 
+        rv$tna_result$data$Achiever = c(rep("High",1000), rep("Low",1000))
         }, warning = function(w) {
-          showNotification('there was a warning','',type = "error" , duration = 3)
+          # showNotification('there was a warning','',type = "error" , duration = 3)
           logjs(w)
           return()
         }, error = function(e) {
           showNotification('there was an error','',type = "error" , duration = 3)
           logjs(e)
+          print(e)
+          
           return()
         }, silent=TRUE)
     }
@@ -450,28 +539,38 @@ server <- function(input, output, session) {
     if(req(input$type) == "frequency") {
       updateSliderInput(session,"minimum", max = max(rv$tna_result$weights))
       updateSliderInput(session,"minimumCom", max = max(rv$tna_result$weights))
+      updateSliderInput(session,"minimumClique", max = nrow(rv$tna_result$weights))
       updateSliderInput(session,"minimumEbet", max = nrow(rv$tna_result$weights))
       updateSliderInput(session,"minimumGroup", max = nrow(rv$tna_result$weights))
+      updateSliderInput(session,"minimumBoot", max = nrow(rv$tna_result$weights))
       updateSliderInput(session,"cut", max = max(rv$tna_result$weights))
       updateSliderInput(session,"cutCom", max = max(rv$tna_result$weights))
+      updateSliderInput(session,"cutClique", max = max(rv$tna_result$weights))
       updateSliderInput(session,"cutEbet", max = nrow(rv$tna_result$weights))
       updateSliderInput(session,"cutGroup", max = nrow(rv$tna_result$weights))
+      updateSliderInput(session,"cutBoot", max = nrow(rv$tna_result$weights))
     } else {
       updateSliderInput(session,"minimum", max = 1)
       updateSliderInput(session,"minimumCom", max = 1)
-      updateSliderInput(session,"minimumEbet", max = nrow(rv$tna_result$weights))
-      updateSliderInput(session,"minimumGroup", max = nrow(rv$tna_result$weights))
+      updateSliderInput(session,"minimumClique", max = 1)
+      updateSliderInput(session,"minimumEbet", max = 1)
+      updateSliderInput(session,"minimumGroup", max = 1)
+      updateSliderInput(session,"minimumBoot", max = 1)
       updateSliderInput(session,"cut", max = 1)
       updateSliderInput(session,"cutCom", max = 1)
-      updateSliderInput(session,"cutEbet", max = nrow(rv$tna_result$weights))
-      updateSliderInput(session,"cutGroup", max = nrow(rv$tna_result$weights))
+      updateSliderInput(session,"cutClique", max = 1)
+      updateSliderInput(session,"cutEbet", max = 1)
+      updateSliderInput(session,"cutGroup", max = 1)
+      updateSliderInput(session,"cutBoot", max = 1)
     }
     
     vsize <- 8 * exp(-1*nrow(rv$tna_result$weights)/80) + 1
     updateSliderInput(session, "vsize", value = vsize)
+    updateSliderInput(session, "vsizeClique", value = 9)
     updateSliderInput(session, "vsizeCom", value = vsize)
     updateSliderInput(session, "vsizeEbet", value = vsize)
     updateSliderInput(session, "vsizeGroup", value = vsize)
+    updateSliderInput(session, "vsizeBoot", value = vsize)
     
   })
   
@@ -500,11 +599,17 @@ server <- function(input, output, session) {
     rv$cliques_result = NULL
     rv$clique_plots = list()
     rv$community_result = NULL
+    rv$bootstrap_result = NULL
     datatable(rv$original, options = list(scrollX = TRUE))
   })
  
   output$summary_model<- renderPrint({
     rv$tna_result
+  })
+  
+  
+  output$summary_boot_model<- renderPrint({
+    rv$bootstrap_result
   })
   
   output$tnaModel <- renderUI({ 
@@ -534,15 +639,7 @@ server <- function(input, output, session) {
   # Summary Statistics
   output$summaryStats <- renderTable({
     req(rv$tna_result)
-    
-    # Calculate some basic network metrics
-    # trans_matrix <- rv$tna_result$weights
-    # cat("Network Summary:\n")
-    # cat("Number of States:", ncol(trans_matrix), "\n")
-    # cat("Average Transition Probability:", round(mean(trans_matrix[trans_matrix > 0]), 3), "\n")
-    # cat("Maximum Transition Probability:", round(max(trans_matrix), 3), "\n")
-    # cat("Number of Non-zero Transitions:", sum(trans_matrix > 0), "\n")
-    (summary(rv$tna_result))
+    summary(rv$tna_result)
   })
   
   # Centrality Measures
@@ -560,7 +657,7 @@ server <- function(input, output, session) {
     tryCatch({
       plot(centrality_result, ncol = input$nColsCentralities)
     }, warning = function(w) {
-      showNotification('there was a warning','',type = "error" , duration = 3)
+      # showNotification('there was a warning','',type = "error" , duration = 3)
       logjs(w)
       return()
     }, error = function(e) {
@@ -589,10 +686,10 @@ server <- function(input, output, session) {
            minimum = input$minimum, 
            label.cex = input$node.label, 
            edge.label.cex = input$edge.label, 
-           vsize=  input$vsize, 
-           layout = input$layout, mar = c(2.5,2.5,2.5,2.5))
+           vsize = input$vsize, 
+           layout = input$layout, mar = mar)
     }, warning = function(w) {
-      showNotification('there was a warning','',type = "error" , duration = 3)
+      # showNotification('there was a warning','',type = "error" , duration = 3)
       logjs(w)
       return()
     }, error = function(e) {
@@ -615,10 +712,10 @@ server <- function(input, output, session) {
            minimum = input$minimumEbet, 
            label.cex = input$node.labelEbet, 
            edge.label.cex = input$edge.labelEbet, 
-           vsize=  input$vsizeEbet, 
-           layout = input$layoutEbet, mar = c(2.5,2.5,2.5,2.5))
+           vsize = input$vsizeEbet, 
+           layout = input$layoutEbet, mar = mar)
     }, warning = function(w) {
-      showNotification('there was a warning','',type = "error" , duration = 3)
+      # showNotification('there was a warning','',type = "error" , duration = 3)
       logjs(w)
       return()
     }, error = function(e) {
@@ -664,15 +761,15 @@ server <- function(input, output, session) {
     # Plot the selected community detection algorithm's results
     
     tryCatch({
-      plot(rv$community_result, method = selected_algorithm, mar = c(2.5,2.5,2.5,2.5), 
+      plot(rv$community_result, method = selected_algorithm, mar = mar, 
            cut = input$cutCom, 
            minimum = input$minimumCom, 
            label.cex = input$node.labelCom, 
            edge.label.cex = input$edge.labelCom, 
-           vsize=  input$vsizeCom, 
+           vsize = input$vsizeCom, 
            layout = input$layoutCom)
     }, warning = function(w) {
-      showNotification('there was a warning','',type = "error" , duration = 3)
+      # showNotification('there was a warning','',type = "error" , duration = 3)
       logjs(w)
       return()
     }, error = function(e) {
@@ -695,7 +792,6 @@ server <- function(input, output, session) {
       threshold = input$cliqueThreshold,
       n = 1000
     )
-    
     if(length(rv$cliques_result$inits) > 0){
       choices <- seq_along(rv$cliques_result$inits)
       names(choices) <- lapply(rv$cliques_result$inits,\(x) names(x) |> paste(collapse = " - "))
@@ -705,30 +801,31 @@ server <- function(input, output, session) {
                         selected = 1)  # Default to first clique
     } else {
       updateSelectInput(session, "cliqueSelect",
-                        selected = 0, 
-                        choices = NULL)  # Default to first clique
+                        selected = NULL, 
+                        choices = NULL)
     }
     
-  })
-  
-  # Display Cliques
-  output$cliquesOutput <- renderPrint({
-    req(rv$cliques_result)
-    rv$cliques_result  # Display the cliques information
   })
   
   # Plot Cliques
   output$cliquesPlot <- renderPlot({
     req(rv$cliques_result)
-    if (is.null(input$cliqueSelect) | as.integer(input$cliqueSelect) == 0){
+    if (is.null(input$cliqueSelect) | (input$cliqueSelect == "")){
       return(NULL)
     } else {
       
       tryCatch({
         plot(rv$cliques_result, 
-             first = as.integer(input$cliqueSelect), n = 1, ask = FALSE, mar = c(2.5,2.5,2.5,2.5))
+             first = as.integer(input$cliqueSelect), n = 1, ask = FALSE,
+             cut = input$cutClique, 
+             minimum = input$minimumClique, 
+             label.cex = input$node.labelClique, 
+             edge.label.cex = input$edge.labelClique, 
+             vsize = input$vsizeClique, 
+             layout = input$layoutClique, 
+             mar = mar)
       }, warning = function(w) {
-        showNotification('there was a warning','',type = "error" , duration = 3)
+        # showNotification('there was a warning','',type = "error" , duration = 3)
         logjs(w)
         return()
       }, error = function(e) {
@@ -746,27 +843,123 @@ server <- function(input, output, session) {
     updateSelectInput(session, "group2", choices = choices, selected = ifelse(!is.null(choices) | (length(choices)>1), choices[2], rlang::missing_arg()))
   })
   output$comparisonPlot <- renderPlot({
+    req(rv$data)
+      
       tryCatch({
         group_tnad <- group_model(req(rv$data), type = req(input$type), group = req(input$compareSelect))
-        plot_compare(group_tnad[[req(input$group1)]], 
-                     group_tnad[[req(input$group2)]],
-                     cut = input$cutGroup, 
-                     minimum = input$minimumGroup, 
-                     label.cex = input$node.labelGroup, 
-                     edge.label.cex = input$edge.labelGroup, 
-                     vsize = input$vsizeGroup, 
-                     layout = input$layoutGroup, 
-                     mar = c(2.5,2.5,2.5,2.5))
+        
+        
+        if(input$compare_sig) {
+          differentrows <- nrow(group_tnad[[req(input$group1)]]$data) != nrow(group_tnad[[req(input$group2)]]$data)
+          
+          permtest <- permutation_test(
+              group_tnad[[req(input$group1)]], 
+              group_tnad[[req(input$group2)]],
+              iter = input$iterPerm,
+              paired = ifelse(differentrows,
+                              F, input$pairedPerm),
+              level = input$levelPerm
+          )
+          if (differentrows & input$pairedPerm) {
+            showNotification('Paired test cannot be applied because groups have different number of observations','',type = "warning" , duration = 3)
+          }
+          
+          plot(permtest,
+              cut = input$cutGroup, 
+              minimum = input$minimumGroup, 
+              label.cex = input$node.labelGroup, 
+              edge.label.cex = input$edge.labelGroup, 
+              vsize = input$vsizeGroup, 
+              layout = input$layoutGroup, 
+              mar = mar)
+          
+        } else {
+          plot_compare(group_tnad[[req(input$group1)]], 
+                       group_tnad[[req(input$group2)]],
+                       cut = input$cutGroup, 
+                       minimum = input$minimumGroup, 
+                       label.cex = input$node.labelGroup, 
+                       edge.label.cex = input$edge.labelGroup, 
+                       vsize = input$vsizeGroup, 
+                       layout = input$layoutGroup, 
+                       posCol = "darkblue",
+                       negCol  = "red",
+                       mar = mar)
+        }
+        
       }, warning = function(w) {
-        showNotification('there was a warning','',type = "error" , duration = 3)
         logjs(w)
+        print(w)
         return()
       }, error = function(e) {
         showNotification('there was an error','',type = "error" , duration = 3)
         logjs(e)
+        print(e)
         return()
       }, silent=TRUE)
   }, res = 600)
+
+  observeEvent(input$bootstrapButton, {
+    req(rv$tna_result)
+    tryCatch({ 
+      if (!is.null(rv$tna_result)) {
+        boot <- tna::bootstrap(rv$tna_result, 
+                               iter = input$iterBoot,
+                               level = input$levelBoot,
+                               method  = input$methodBoot,
+                               threshold = input$thresBoot,
+                               consistency_range = sort(c(input$constLowerBoot,input$constUpperBoot))
+                               )
+        
+        rv$bootstrap_result <- prune(
+          rv$tna_result, method = "bootstrap", boot = boot
+        )
+     }
+   }, warning = function(w) {
+     print(w)
+     # showNotification('there was a warning', '', type = "error" , duration = 3)
+     logjs(w)
+     return()
+   }, error = function(e) {
+     showNotification('there was an error', '', type = "error" , duration = 3)
+     logjs(e)
+     print(e)
+     return()
+   }, silent=TRUE)
+  })
+  
+  output$tnaPlotBoot <- renderPlot({
+    req(rv$bootstrap_result)
+    tryCatch({
+      plot(rv$bootstrap_result, 
+           cut = input$cutBoot, 
+           minimum = input$minimumBoot, 
+           label.cex = input$node.labelBoot, 
+           edge.label.cex = input$edge.labelBoot, 
+           vsize = input$vsizeBoot, 
+           layout = input$layoutBoot, mar = mar)
+    
+    }, warning = function(w) {
+      print(w)
+      # showNotification('there was a warning', '', type = "error" , duration = 3)
+      logjs(w)
+      return()
+    }, error = function(e) {
+      showNotification('there was an error', '', type = "error" , duration = 3)
+      logjs(e)
+      print(e)
+      return()
+    }, silent=TRUE)
+  }, res = 600)
+  
+  output$bootstrappedtnaModel <- renderUI({ 
+    if(is.null(rv$bootstrap_result)){
+      NULL
+    } else {
+      verbatimTextOutput("summary_boot_model")
+    }
+  })
+  
 }
 
 # Run the application
