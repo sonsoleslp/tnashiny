@@ -18,7 +18,7 @@ logo <- tags$span(tags$a(href = "https://sonsoles.me/tna",
                            height = "44",
                            width = "40"
                          )),
-"TNA")
+                  "TNA")
 db_header$children[[2]]$children <- logo
 
 # UI
@@ -109,7 +109,7 @@ ui <- dashboardPage(
           tags$a(
             "Check the package documentation",
             href = "https://sonsoles.me/tna/"),
-            "."
+          "."
         ),
         tags$ul(
           tags$li(
@@ -294,7 +294,7 @@ ui <- dashboardPage(
                                               )
                                             )
                                           )
-                                        ),
+                         ),
                          conditionalPanel(
                            condition = "input.inputType",
                            box(
@@ -402,8 +402,8 @@ ui <- dashboardPage(
                     jqui_resizable(
                       plotOutput(
                         "centralityPlot",
-                         width = "800px",
-                         height = "800px"
+                        width = "800px",
+                        height = "800px"
                       ),
                       # Render the TNA plot here
                       options = list(ghost = TRUE, helper = "resizable-helper")
@@ -576,7 +576,7 @@ ui <- dashboardPage(
                              "Choose Algorithm:",
                              choices = "spinglass"
                            ),
-                          numericInput(
+                           numericInput(
                              "gamma",
                              "Gamma (for certain algorithms):",
                              value = 1,
@@ -837,17 +837,83 @@ ui <- dashboardPage(
                                   )),
                            column(width = 9,
                                   fluidRow(
-                                    box(
-                                      title = "Comparison Plot",
-                                      width = 12,
-                                      div(
+                                    tabBox(
+                                      id = "tabset1", width = 12,
+                                      tabPanel("Difference", div(
                                         jqui_resizable(
-                                          plotOutput("comparisonPlot", width = "800px", height = "800px"),
+                                          plotOutput("comparisonPlot", width = "600px", height = "600px"),
                                           # Render the TNA plot here
                                           options = list(ghost = TRUE, helper = "resizable-helper")
                                         ),
-                                        align = "center",
-                                        width = 12
+                                        align = "center")),
+                                      tabPanel("Mosaic", div(
+                                        jqui_resizable(
+                                          plotOutput("mosaicPlot", width = "1400px", height = "900px"),
+                                          # Render the TNA plot here
+                                          options = list(ghost = TRUE, helper = "resizable-helper")
+                                        ),
+                                        align = "center")),
+                                      tabPanel("Centralities", 
+                                               fluidRow(box(
+                                                 fluidRow(
+                                                   column(
+                                                     width = 6,
+                                                     selectInput(
+                                                       "centralitiesChoiceGroup",
+                                                       "Centralities",
+                                                       multiple = TRUE,
+                                                       choices = c(
+                                                         "OutStrength",
+                                                         "InStrength",
+                                                         "ClosenessIn",
+                                                         "ClosenessOut",
+                                                         "Closeness",
+                                                         "BetweennessRSP",
+                                                         "Betweenness",
+                                                         "Diffusion",
+                                                         "Clustering"
+                                                       ),
+                                                       selected = c(
+                                                         "OutStrength",
+                                                         "InStrength",
+                                                         "ClosenessIn",
+                                                         "ClosenessOut",
+                                                         "Closeness",
+                                                         "BetweennessRSP",
+                                                         "Betweenness",
+                                                         "Diffusion",
+                                                         "Clustering"
+                                                       )
+                                                     )
+                                                   ),
+                                                   column(
+                                                     width = 2,
+                                                     tags$label("Properties"),
+                                                     checkboxInput("loopsGroup", "Loops?", value = FALSE),
+                                                     checkboxInput("normalizeGroup", "Normalize?", value = FALSE),
+                                                     class = "checkboxcentralities"
+                                                   ),
+                                                   column(
+                                                     width = 2,
+                                                     numericInput(
+                                                       "nColsCentralitiesGroup",
+                                                       "Columns",
+                                                       3,
+                                                       min = 1,
+                                                       max = 9,
+                                                       step = 1
+                                                     )
+                                                   )
+                                                 ),
+                                                 width = 12
+                                               )),
+                                               div(
+                                        jqui_resizable(
+                                          plotOutput("groupCentralitiesPlot", width = "900px", height = "600px"),
+                                          # Render the TNA plot here
+                                          options = list(ghost = TRUE, helper = "resizable-helper")
+                                        ),
+                                        align = "center")
                                       )
                                     )
                                   ))
@@ -1118,8 +1184,8 @@ server <- function(input, output, session) {
           list(
             long_data = NULL,
             sequence_data =  rv$original,
-            meta_data = data.frame(Achiever = c(
-              rep("High", 1000), rep("Low", 1000)
+            meta_data = data.frame(
+              Achiever = c(rep("High", 1000), rep("Low", 1000)
             )),
             statistics = NULL
           ),
@@ -1247,6 +1313,7 @@ server <- function(input, output, session) {
     rv$centrality_result <- centrality_result
     # Plot centrality measures
     tryCatch({
+      
       plot(centrality_result, ncol = input$nColsCentralities)
     }, warning = function(w) {
       logjs(w)
@@ -1548,6 +1615,7 @@ server <- function(input, output, session) {
       print(e)
     }, silent = TRUE)
   })
+  
   output$tnaPlotBoot <- renderPlot({
     req(rv$bootstrap_result)
     tryCatch({
@@ -1573,6 +1641,7 @@ server <- function(input, output, session) {
       print(e)
     }, silent = TRUE)
   }, res = 600)
+  
   output$bootstrappedtnaModel <- renderUI({
     if (is.null(rv$bootstrap_result)) {
       NULL
@@ -1580,6 +1649,57 @@ server <- function(input, output, session) {
       verbatimTextOutput("summary_boot_model")
     }
   })
+  
+  output$mosaicPlot <- renderPlot({
+    req(rv$tna_result)
+    tryCatch({
+      group_tnad <- group_model(
+        req(rv$data),
+        type = req(input$type),
+        group = req(input$compareSelect)
+      )
+      plot_mosaic(group_tnad)
+      
+    }, warning = function(w) {
+      print(w)
+      logjs(w)
+    }, error = function(e) {
+      showNotification("There was an error",
+                       "",
+                       type = "error",
+                       duration = 3)
+      logjs(e)
+      print(e)
+    }, silent = TRUE)
+  }, res = 100)  
+  
+  output$groupCentralitiesPlot <- renderPlot({
+    req(rv$tna_result)
+    tryCatch({
+      group_tnad <- group_model(
+        req(rv$data),
+        type = req(input$type),
+        group = req(input$compareSelect)
+      )
+      plot(centralities(group_tnad,
+                        measures = input$centralitiesChoiceGroup,
+                        normalize = input$normalizeGroup,
+                        loops =  input$loopsGroup), ncol = input$nColsCentralitiesGroup)
+      
+    }, warning = function(w) {
+      print(w)
+      logjs(w)
+    }, error = function(e) {
+      showNotification("There was an error",
+                       "",
+                       type = "error",
+                       duration = 3)
+      logjs(e)
+      print(e)
+    }, silent = TRUE)
+  }, res = 100)
+  
+  
 }
 # Run the application
 shinyApp(ui = ui, server = server)
