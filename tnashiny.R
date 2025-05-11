@@ -193,10 +193,10 @@ ui <- dashboardPage(
                     conditionalPanel(
                       condition = "input.inputType == 'long'",
                       fileInput("longInput", "Upload long data"),
-                      selectInput("longAction", "Action:", choices = NULL),
-                      selectInput("longActor", "Actor:", choices = NULL),
-                      selectInput("longTime", "Time:", choices = NULL),
-                      selectInput("longOrder", "Order:", choices = NULL),
+                      selectInput("longAction", "Action:", choices = NULL, selectize = F),
+                      selectInput("longActor", "Actor:", choices = NULL, selectize = F),
+                      selectInput("longTime", "Time:", choices = NULL, selectize = F),
+                      selectInput("longOrder", "Order:", choices = NULL, selectize = F),
                       numericInput(
                         "longThreshold",
                         "Threshold:",
@@ -204,7 +204,7 @@ ui <- dashboardPage(
                         value = 900,
                         step = 1
                       ),
-                      textInput("longDate", "Date format:")
+                      textInput("longDate", "Date format:", placeholder = "Not mandatory if your timestamp is in an established format")
                     ),
                     conditionalPanel(
                       condition = "input.inputType == 'matrix'",
@@ -213,7 +213,7 @@ ui <- dashboardPage(
                     selectInput(
                       "type",
                       "Analysis Type:",
-                      choices = c("relative", "frequency")),
+                      choices = c("relative", "frequency","co-occurrence")),
                     actionButton("analyze", "Analyze", class = "btn-primary")
                   )
                 )),
@@ -1094,7 +1094,7 @@ server <- function(input, output, session) {
       # Perform TNA analysis
       tryCatch({
         # Use tna(data) directly
-        rv$tna_result <- build_model(data, type = req(input$type))
+        rv$tna_result <- build_model(rv$data, type = req(input$type))
       }, warning = function(w) {
         logjs(w)
       }, error = function(e) {
@@ -1103,6 +1103,8 @@ server <- function(input, output, session) {
                          type = "error",
                          duration = 3)
         logjs(e)
+        print("e")
+        print(e)
       }, silent = TRUE)
     } else  if (input$inputType == "long") {
       tryCatch({
@@ -1168,7 +1170,7 @@ server <- function(input, output, session) {
         rv$data <- matrix_data
         # Perform TNA analysis with matrix input
         rv$tna_result <-
-          tna(matrix_data, type = req(input$type))  # Use tna(matrix_data) directly
+          tna(matrix_data)  # Use tna(matrix_data) directly
       }, warning = function(w) {
         logjs(w)
       }, error = function(e) {
@@ -1177,6 +1179,7 @@ server <- function(input, output, session) {
                          type = "error",
                          duration = 3)
         logjs(e)
+        print(e)
       }, silent = TRUE)
     } else if (input$inputType == "sample") {
       tryCatch({
@@ -1207,7 +1210,7 @@ server <- function(input, output, session) {
         print(e)
       }, silent = TRUE)
     }
-    if (req(input$type) == "frequency") {
+    if ((req(input$type) == "frequency") | (req(input$type) == "co-occurrence")) {
       updateSliderInput(session, "minimum", max = max(rv$tna_result$weights))
       updateSliderInput(session, "minimumCom", max = max(rv$tna_result$weights))
       updateSliderInput(session, "minimumClique", max = nrow(rv$tna_result$weights))
@@ -1250,14 +1253,14 @@ server <- function(input, output, session) {
     }
     if (!is.null(input$longInput) & input$inputType == "long") {
       rv$original <- import(input$longInput$datapath)
-      theoptions <- c("", names(rv$original))
+      theoptions <- c(Empty = "", names(rv$original))
       updateSelectInput(session, "longAction", choices = theoptions)
       updateSelectInput(session, "longActor", choices = theoptions)
       updateSelectInput(session, "longOrder", choices = theoptions)
       updateSelectInput(session, "longTime", choices = theoptions)
     } else if (!is.null(input$matrixInput) & input$inputType == "matrix") {
       rv$original <- import(input$matrixInput$datapath, row.names = 1)
-    } else if (!is.null(input$fileInput) & input$inputType == "long") {
+    } else if (!is.null(input$fileInput) & input$inputType == "sequence") {
       rv$original <- import(input$fileInput$datapath)
     } else if (input$inputType == "sample") {
       rv$original <- group_regulation
@@ -1292,8 +1295,11 @@ server <- function(input, output, session) {
   # Initial Probabilities Display
   output$initialProbs <- renderDT({
     req(rv$tna_result)
-    init_probs <- data.frame(Probability = round(rv$tna_result$inits, 3))
-    datatable(init_probs, options = list(pageLength = 10, scrollX = TRUE))
+    inits <- rv$tna_result$inits
+    if(!is.null(inits)) {
+      init_probs <- data.frame(Probability = round(inits, 3))
+      datatable(init_probs, options = list(pageLength = 10, scrollX = TRUE))
+    }
   })
   # Summary Statistics
   output$summaryStats <- renderTable({
@@ -1495,6 +1501,7 @@ server <- function(input, output, session) {
       }, silent = TRUE)
     }
   }, res = 600)
+  
   observeEvent(input$compareSelect, {
     if (is.null(rv$data$meta_data)) {
       return()
@@ -1522,6 +1529,7 @@ server <- function(input, output, session) {
       )
     )
   })
+  
   output$comparisonPlot <- renderPlot({
     req(rv$data)
     tryCatch({
