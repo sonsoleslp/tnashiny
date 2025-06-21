@@ -1,5 +1,5 @@
 
-#  An Shiny app for Transition Network Analysis <img src="https://github.com/sonsoleslp/tna/blob/main/man/figures/logo.png?raw=true" align="right" height="139"/></a>
+#  A Shiny app for Transition Network Analysis <img src="https://github.com/sonsoleslp/tna/blob/main/man/figures/logo.png?raw=true" align="right" height="139"/></a>
 
 <!-- badges: start -->
 
