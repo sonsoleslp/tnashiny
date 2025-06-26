@@ -10,7 +10,9 @@ renderEdgeBetweenness <- function(rv, input, output, session) {
         minimum = input$minimumEbet,
         label.cex = input$node.labelEbet,
         edge.label.cex = input$edge.labelEbet,
+        edge.color = input$edgeColorEbet,
         vsize = input$vsizeEbet,
+        shape = input$shapeEbet,
         layout = getLayout(input$layoutEbet),
         colors = getPalette(input$paletteEbet, length(rv$tna_result$labels)),
         mar = mar

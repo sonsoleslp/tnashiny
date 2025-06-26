@@ -16,7 +16,8 @@ getCentralities <- function() {
       fluidRow(
         column(
           width = 6,
-          selectInput("centralitiesChoice", "Centralities", multiple = TRUE, choices = centralitiesList, selected = centralitiesList)
+          selectInput("centralitiesChoice", "Centralities", multiple = TRUE, 
+                      choices = centralitiesList, selected = centralitiesList)
         ),
         column(
           width = 2,
@@ -27,7 +28,10 @@ getCentralities <- function() {
         ),
         column(
           width = 2, 
-          numericInput("nColsCentralities", "Columns", 3, min = 1, max = 9, step = 1)
+          selectInput("paletteCentralities", "Palette", choices = getPalettes(9), selected = "Set3"),
+          numericInput("nColsCentralities", 
+                       "Columns", 3, min = 1, max = 9, step = 1),
+          
         )
       ),
       width = 12
@@ -76,13 +80,14 @@ renderCentralityResults <- function(rv, input, output, session) {
       rv$tna_result,
       measures = input$centralitiesChoice,
       normalize = input$normalize,
-      loops =  input$loops
+      loops = input$loops
     )
     rv$centrality_result <- centrality_result
     # Plot centrality measures
     tryCatch({
-      
-      plot(centrality_result, ncol = input$nColsCentralities)
+      plot(centrality_result, 
+           colors = getPalette(input$paletteCentralities, length(rv$tna_result$labels)),
+           ncol = input$nColsCentralities)
     }, warning = function(w) {
       logjs(w)
     }, error = function(e) {

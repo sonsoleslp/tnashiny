@@ -1,16 +1,13 @@
-getCommunities <- function(){
-  fluidRow(
-    # Left Sidebar (3-column width)
+getCommunities <- function() {
+  fluidRow(# Left Sidebar (3-column width)
     column(width = 3,
            fluidRow(
              box(
                title = "Community Detection Settings",
                width = 12,
-               selectInput(
-                 "communityAlgorithm",
-                 "Choose Algorithm:",
-                 choices = "spinglass"
-               ),
+               selectInput("communityAlgorithm",
+                           "Choose Algorithm:",
+                           choices = "spinglass"),
                numericInput(
                  "gamma",
                  "Gamma (for certain algorithms):",
@@ -24,8 +21,7 @@ getCommunities <- function(){
            )),
     # Right Main Content (9-column width)
     # Second Block
-    getVisualizationPlot("Com")
-  )
+    getVisualizationPlot("Com"))
 }
 
 renderCommunityResults <- function(rv, input, output, session) {
@@ -70,8 +66,10 @@ renderCommunityResults <- function(rv, input, output, session) {
         cut = input$cutCom,
         minimum = input$minimumCom,
         label.cex = input$node.labelCom,
+        edge.color = input$edgeColorCom,
         edge.label.cex = input$edge.labelCom,
         vsize = input$vsizeCom,
+        shape = input$shapeCom,
         colors = getPalette(input$paletteCom, rv$community_result$counts[[selected_algorithm]]),
         layout = getLayout(input$layoutCom)
       )

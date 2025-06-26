@@ -8,8 +8,8 @@ library(shinyjs)
 set.seed(19)
 
 source("utils.R")
-source("sections/intro.R")
 source("sections/input.R")
+source("sections/intro.R")
 source("sections/summary.R")
 source("sections/visualization.R")
 source("sections/sequences.R")
@@ -66,4 +66,4 @@ server <- function(input, output, session) {
   
 }
 # Run the application
-shinyApp(ui = ui, server = server)
+# shinyApp(ui = ui, server = server)

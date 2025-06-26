@@ -1,4 +1,6 @@
 library(sortable)
+library(shinyBS)
+library(DT)
 
 
 getInputData <- function() {
@@ -14,18 +16,19 @@ getInputData <- function() {
           choices = c(
             "Sample data" = "sample",
             "Sequence Data" = "sequence",
+            "0/1 Data" = "one-hot",
             "Long Data" = "long",
             "Transition Matrix" = "matrix"
           )
         ),
         conditionalPanel(
-          condition = "input.inputType == 'sequence'",
+          condition = "(input.inputType == 'sequence')",
           fileInput("fileInput", "Upload data file (sequence or wide data)"),
           selectInput("seqFrom", "From:", choices = NULL, selectize = F),
           selectInput("seqTo", "To:", choices = NULL, selectize = F)
         ),
         conditionalPanel(
-          condition = "input.inputType == 'long'",
+          condition = "(input.inputType == 'long')",
           fileInput("longInput", "Upload long data"),
           selectInput("longAction", "Action:", choices = NULL, selectize = F),
           selectInput("longActor", "Actor:", choices = NULL, selectize = F),
@@ -34,11 +37,33 @@ getInputData <- function() {
           numericInput("longThreshold", "Threshold:", min = 0, value = 900, step = 1),
           textInput("longDate", "Date format:", placeholder = "Not mandatory if your timestamp is in an established format")
         ),
+        conditionalPanel(
+          condition = "(input.inputType == 'one-hot')",
+          fileInput("oneHotInput", "Upload 0/1 data"),
+          selectInput("oneHotAction", "Actions:", choices = NULL, multiple = TRUE),
+          selectInput("oneHotWindow", "Window:", choices = NULL, selectize = F),
+          # selectInput("oneHotTime", "Time:", choices = NULL, selectize = F),
+          # selectInput("oneHotOrder", "Order:", choices = NULL, selectize = F),
+          # numericInput("oneHotThreshold", "Threshold:", min = 0, value = 900, step = 1),
+          # textInput("oneHotDate", "Date format:", placeholder = "Not mandatory if your timestamp is in an established format")
+        ),
         conditionalPanel(condition = "input.inputType == 'matrix'", fileInput("matrixInput", "Upload transition matrix")),
-        selectInput("type", "Analysis Type:", choices = c("relative", "frequency","co-occurrence")),
-        selectInput("scaling", "Scaling (discouraged):", multiple = TRUE, choices = c("minmax", "max", "rank")),
-        conditionalPanel(condition = "(input.inputType)", uiOutput("sortable_ui")),
-        conditionalPanel(condition = "(input.inputType)", actionButton("analyze", "Analyze", class = "btn-primary"))
+        conditionalPanel(condition = "(input.inputType) & (input.inputType != 'one-hot')", 
+          selectInput("type", "Analysis Type:", choices = c("relative", "frequency","co-occurrence")),                                                      
+        ),
+        conditionalPanel(condition = "(input.inputType)", 
+             div(
+              bsCollapse(id = "advancedInput",
+                bsCollapsePanel("Advanced:", style = "secondary",
+                div(
+                  selectInput("scaling", "Scaling (discouraged):", 
+                              multiple = TRUE, 
+                              choices = c("minmax", "max", "rank")),
+                  uiOutput("sortable_ui")
+                ))),
+              div(actionButton("analyze", "Analyze", class = "btn-primary"), class ="align-right")
+            )
+        ),
       )
     )),
     column(width = 9, fluidRow(
@@ -52,18 +77,18 @@ getInputData <- function() {
             fluidRow(
               column(4, 
                      span("Sequence Data", class = "datatype"),
-                     img(src = "wide.png", width = "100%", class = "thumb"),
+                     div(img(src = "wide.png", width = "100%", class = "thumb"), class = "align-center"),
                      p("Wide-format data stores each time point in a  separate column. It can be a tabular file (csv, xlsx) or an R sequence stslist object (e.g., from TraMineR)"
                      )
               ),
-              column(4,
+              column(4, class = "align-center",
                      span("Long Data", class = "datatype"),
-                     img(src = "long.png", width = "100%", class = "thumb"),
+                     div(img(src = "long.png", width = "100%", class = "thumb"), class = "align-center"),
                      p("Long-format data stacks repeated measurements in rows, and the columns specify the actor, action and timestamp or order, as well as additional metadata.")
               ),
-              column(4,
+              column(4, class = "align-center",
                      span("Transition Matrix", class = "datatype"),
-                     img(src = "matrix.png", width = "100%", class = "thumb"),
+                     div(img(src = "matrix.png", width = "100%", class = "thumb"), class = "align-center"),
                      p("You can also upload directly a transition probability matrix.")
               )
             )
@@ -128,6 +153,7 @@ analyzeInputData <- function(rv, input, output, session) {
           rv$meta_data <- meta_data
           groupchoices <- names(meta_data)
           updateSelectInput(session, "compareSelect", choices = groupchoices)
+          updateSelectInput(session, "groupSequence", choices = c(None = " ", groupchoices))        
         }
         
         rv$tna_result <-
@@ -150,11 +176,11 @@ analyzeInputData <- function(rv, input, output, session) {
         order <- rlang::missing_arg()
         dateformat <- NULL
         thresh <- Inf
-        whitelist <-
-          c(".session_id", ".standardized_time", ".session_nr")
+        whitelist <- c(".session_id", ".standardized_time", ".session_nr")
+        original_factored <- rv$original
         if ((input$longAction != "") & !is.null(input$longAction)) {
           action <- input$longAction
-          rv$data[,action] <- factor(rv$data[,action], levels = rv$states)
+          original_factored[,action] <- factor(original_factored[,action], levels = rv$states)
           whitelist <- c(whitelist, action)
         }
         if ((input$longActor != "") & !is.null(input$longActor)) {
@@ -175,24 +201,57 @@ analyzeInputData <- function(rv, input, output, session) {
         if ((input$longThreshold != "") & !is.null(input$longThreshold)) {
           thresh <- input$longThreshold
         }
-        rv$data <-
-          prepare_data(
-            rv$original,
-            action = action,
-            actor = actor,
-            time_threshold = thresh,
-            time = time,
-            order = order,
-            custom_format = dateformat
-          )
-        rv$tna_result <-
-          build_model(rv$data, type = req(input$type), scaling = scaling)
-        
+        rv$data <- prepare_data(
+          original_factored,
+          action = action,
+          actor = actor,
+          time_threshold = thresh,
+          time = time,
+          order = order,
+          custom_format = dateformat
+        )
+        rv$tna_result <- build_model(rv$data, type = req(input$type), scaling = scaling)
         rv$meta_data <- rv$data$meta_data
         groupchoices <- names(rv$meta_data)
-        groupchoices <-
-          groupchoices[sapply(groupchoices, \(x) ! (x %in% whitelist))]
+        groupchoices <- groupchoices[sapply(groupchoices, \(x) ! (x %in% whitelist))]
         updateSelectInput(session, "compareSelect", choices = groupchoices)
+        updateSelectInput(session, "groupSequence", choices = c(None = " ", groupchoices))        
+      }, warning = function(w) {
+        logjs(w)
+      }, error = function(e) {
+        print(e)
+        showGenericError()
+        logjs(e)
+      }, silent = TRUE)
+      # Perform TNA analysis
+    } else  if (input$inputType == "one-hot") {
+      tryCatch({
+        action <- rlang::missing_arg()
+        window <- rlang::missing_arg()
+        dateformat <- NULL
+        thresh <- Inf
+        whitelist <- c(".session_id", ".standardized_time", ".session_nr")
+        if (length(input$oneHotAction) > 0) {
+          action <- input$oneHotAction
+          whitelist <- c(whitelist, action)
+        }
+        if ((input$oneHotWindow != "") & !is.null(input$oneHotWindow)) {
+          window <- input$oneHotWindow
+          whitelist <- c(whitelist, window)
+        }
+
+        rv$tna_result <- import_onehot(
+          rv$original,
+          cols = action,
+          window = window
+        )
+        
+        rv$data <- rv$original
+        rv$meta_data <- data.frame()
+        groupchoices <- ifelse(ncol(rv$meta_data) > 0, names(rv$meta_data), c())
+        groupchoices <- groupchoices[sapply(groupchoices, \(x) ! (x %in% whitelist))]
+        updateSelectInput(session, "compareSelect", choices = groupchoices)
+        updateSelectInput(session, "groupSequence", choices = c(None = " ", groupchoices))        
       }, warning = function(w) {
         logjs(w)
       }, error = function(e) {
@@ -231,6 +290,8 @@ analyzeInputData <- function(rv, input, output, session) {
         rv$meta_data <- rv$data$meta_data
         groupchoices <- names(rv$meta_data)
         updateSelectInput(session, "compareSelect", choices = groupchoices)
+        updateSelectInput(session, "groupSequence", choices = c(None = " ", groupchoices))
+        
         rv$tna_result <-
           build_model(rv$data, type = req(input$type), scaling = scaling)
         rv$tna_result$data$Achiever = c(rep("High", 1000), rep("Low", 1000))
@@ -284,6 +345,7 @@ analyzeInputData <- function(rv, input, output, session) {
     palettes <- getPalettes(nn)
     
     updateSelectInput(session, "palette", choices = palettes, selected = "Default")
+    updateSelectInput(session, "paletteCentralities", choices = palettes, selected = "Default")
     updateSelectInput(session, "paletteCom", choices = palettes, selected = "Default")
     updateSelectInput(session, "paletteClique", choices = palettes, selected = "Default")
     updateSelectInput(session, "paletteEbet", choices = palettes, selected = "Default")
@@ -325,7 +387,7 @@ previewData <- function(rv, input, output, session) {
   })
   
   observeEvent(input$longAction, {
-    if (!is.null(input$longAction) & input$longAction != "") {
+    if (!is.null(input$longAction) & (input$longAction != "")) {
       rv$states <- sort(unique(rv$original[,input$longAction]))
     }
   })
@@ -335,7 +397,7 @@ previewData <- function(rv, input, output, session) {
     if (is.null(input$inputType)) {
       return(NULL)
     }
-    if (!is.null(input$longInput) & input$inputType == "long") {
+    if (!is.null(input$longInput) & (input$inputType == "long")) {
       rv$original <- import(input$longInput$datapath)
       theoptions <- c(Empty = "", names(rv$original))
       updateSelectInput(session, "longAction", choices = theoptions)
@@ -343,11 +405,16 @@ previewData <- function(rv, input, output, session) {
       updateSelectInput(session, "longOrder", choices = theoptions)
       updateSelectInput(session, "longTime", choices = theoptions)
       
+    } else if (!is.null(input$oneHotInput) & input$inputType == "one-hot") {
+      rv$original <- import(input$oneHotInput$datapath)
+      theoptions <- c(Empty = "", names(rv$original))
+      updateSelectInput(session, "oneHotAction", choices = theoptions)
+      updateSelectInput(session, "oneHotWindow", choices = theoptions)
     } else if (!is.null(input$matrixInput) & input$inputType == "matrix") {
       rv$original <- import(input$matrixInput$datapath, row.names = 1)
       rv$states <- names(rv$original)
     } else if (!is.null(input$fileInput) & input$inputType == "sequence") {
-      rv$original <- import(input$fileInput$datapath)
+      rv$original <- import(input$fileInput$datapath) |> dplyr::mutate_all(\(x) ifelse(x == "", NA, x))
       
       sequencePos = names(rv$original)
       sequencePostList = seq(1,length(sequencePos))
@@ -387,6 +454,3 @@ previewData <- function(rv, input, output, session) {
     )
   })
 }
-
-
-

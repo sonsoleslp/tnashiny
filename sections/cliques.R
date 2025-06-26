@@ -38,7 +38,7 @@ renderCliqueResults <- function(rv, input, output, session) {
       names(choices) <- paste0("Clique ", choices, ": ", names(choices))
       updateSelectInput(session, "cliqueSelect", choices = choices, selected = 1)  
     } else {
-      updateSelectInput(session, "cliqueSelect", selected = NULL, choices = NULL)
+      updateSelectInput(session, "cliqueSelect", selected = character(0), choices = character(0))
     }
   })
   # Plot Cliques
@@ -48,26 +48,31 @@ renderCliqueResults <- function(rv, input, output, session) {
       return(NULL)
     } else {
       tryCatch({
-        sapply(rv$tna_result$labels, \(x) which(x == names(rv$cliques_result$inits), arr.ind = T))
-        plot(
-          rv$cliques_result,
-          first = as.integer(input$cliqueSelect),
-          n = 1,
-          ask = FALSE,
-          cut = input$cutClique,
-          minimum = input$minimumClique,
-          label.cex = input$node.labelClique,
-          edge.label.cex = input$edge.labelClique,
-          vsize = input$vsizeClique,
-          colors = getPalette(input$paletteClique, length(rv$tna_result$labels)),
-          layout = getLayout(input$layoutClique),
-          mar = mar
-        )
+        if (length(rv$cliques_result$inits) > 0) {
+          sapply(rv$tna_result$labels, \(x) which(x == names(rv$cliques_result$inits), arr.ind = T))
+          plot(
+            rv$cliques_result,
+            first = as.integer(input$cliqueSelect),
+            n = 1,
+            ask = FALSE,
+            cut = input$cutClique,
+            minimum = input$minimumClique,
+            label.cex = input$node.labelClique,
+            edge.color = input$edgeColorClique,
+            edge.label.cex = input$edge.labelClique,
+            vsize = input$vsizeClique,
+            colors = getPalette(input$paletteClique, length(rv$tna_result$labels)),
+            layout = getLayout(input$layoutClique),
+            mar = mar
+          )
+        }
       }, warning = function(w) {
         logjs(w)
+        print(w)
       }, error = function(e) {
         showGenericError()
         logjs(e)
+        print(e)
       }, silent = TRUE)
     }
   }, res = 600)

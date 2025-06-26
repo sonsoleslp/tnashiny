@@ -45,7 +45,7 @@ getIntro <- function() {
           ": Generate interactive and static plots to visually explore network dynamics."
         )
       ),
-      div(img(src = "TNA.png", style = "width: 600px; max-width: 100%;"), style = "text-align: center;"), 
+      div(img(src = "TNA.png", style = "max-width: 100%;"), style = "text-align: center;"), 
       width = 8
     ),
     # # Links

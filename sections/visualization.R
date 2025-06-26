@@ -1,8 +1,19 @@
+library(colourpicker)
+availableLayouts = c("circle","spring","star","tree","nicely","grid","random","dh","fr","gem","graphopt","kk","lgl")
 
-availableLayouts = c("circle","spring","star","tree","circle","nicely","grid","random","dh","fr","gem","graphopt","kk","lgl")
-getVisualizationSettings <- function (prefix, width = 3) {
+getVisualizationSettings <- function (prefix, width = 3, twoColors = FALSE) {
+    colored <- colourInput(paste0("edgeColor", prefix), "Edge color", value = "darkblue")
+  
+    if (twoColors) {
+      colored <- div(
+        colourInput(paste0("posEdgeColor", prefix), "Positive color", value = "darkblue"),
+        colourInput(paste0("negEdgeColor", prefix), "Negative color", value = "#BF0000")
+      )
+    }
     box(title = "Settings", width = width,
         selectInput(paste0("layout", prefix), "Layout", choices = availableLayouts, selected = "circle"),
+        selectInput(paste0("shape", prefix), "Shape", choices = c("circle", "square"), selected = "circle"),
+        div(colored),
         selectInput(paste0("palette", prefix), "Palette", choices = getPalettes(9), selected = "Set3"),
         sliderInput(paste0("cut", prefix), "Cut Value", min = 0, max = 1, value = 0.1, step = 0.01, ticks = FALSE),
         sliderInput(paste0("minimum", prefix), "Minimum Value", min = 0, max = 1, value = 0.05, step = 0.01, ticks = FALSE),

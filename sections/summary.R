@@ -58,7 +58,9 @@ renderSummaryResults <- function(rv, input, output, session) {
   output$summary_model <- renderPrint({
     toPrint <- rv$tna_result
     toPrint$weights <- round(rv$tna_result$weights, 3)
-    toPrint$inits <- round(rv$tna_result$inits, 3)
+    if(!is.null(rv$tna_result$inits)) {
+      toPrint$inits <- round(rv$tna_result$inits, 3)
+    }
     toPrint
   })
   
@@ -77,9 +79,11 @@ renderSummaryResults <- function(rv, input, output, session) {
       plot(
         rv$tna_result,
         cut = input$cut,
+        shape = input$shape,
         minimum = input$minimum,
         label.cex = input$node.label,
         edge.label.cex = input$edge.label,
+        edge.color = input$edgeColor,
         vsize = input$vsize,
         layout = getLayout(input$layout),
         colors = getPalette(input$palette, length(rv$tna_result$labels)),
@@ -133,7 +137,7 @@ renderSummaryResults <- function(rv, input, output, session) {
     req(rv$tna_result)
     
     tryCatch({
-      plot_frequencies(rv$tna_result)
+      plot_frequencies(rv$tna_result, colors = "lightblue")
     }, warning = function(w) {
       logjs(w)
     }, error = function(e) {

@@ -1,5 +1,5 @@
 getValidationAllowed <- function() {
-  conditionalPanel(condition = "(input.inputType != 'matrix') | !input.inputType",
+  conditionalPanel(condition = "input.inputType & (input.inputType != 'matrix') & (input.inputType != 'one-hot')",
   fluidRow(
     tabBox(
        id = "tabset2", 
@@ -43,7 +43,9 @@ getValidationAllowed <- function() {
            fluidRow(
              column(
                width = 6,
-               selectInput("centralitiesChoiceCase", "Centralities", multiple = TRUE, choices = centralitiesList, selected = c("OutStrength","InStrength"))
+               selectInput("centralitiesChoiceCase", "Centralities", 
+                           multiple = TRUE, choices = centralitiesList, 
+                           selected = c("OutStrength","InStrength"))
              ),
              column(
                width = 2,
@@ -54,8 +56,10 @@ getValidationAllowed <- function() {
              ),
              column(
                width = 2, 
-               numericInput("thresholdCase", "Threshold", 0.7, min = 0, max = 1, step = 0.01),
-               numericInput("iterCase", "Iteration:", min = 0, max = 10000, value = 1000, step = 100),
+               numericInput("thresholdCase", "Threshold", 0.7, 
+                            min = 0, max = 1, step = 0.01),
+               numericInput("iterCase", "Iteration:", 
+                            min = 0, max = 10000, value = 1000, step = 100),
                
              ),
              column(
@@ -76,7 +80,7 @@ getValidationAllowed <- function() {
    ))))
 }
 getValidationNotAllowed <- function() {
-  conditionalPanel(condition = "input.inputType == 'matrix'",
+  conditionalPanel(condition = "(input.inputType == 'matrix') | (input.inputType == 'one-hot')",
        box(
          span(
            icon("circle-info", class = "text-danger"),
@@ -129,8 +133,10 @@ renderValidation <- function(rv, input, output, session) {
         rv$bootstrap_result,
         cut = input$cutBoot,
         minimum = input$minimumBoot,
+        shape = input$shapeBoot,
         label.cex = input$node.labelBoot,
         edge.label.cex = input$edge.labelBoot,
+        edge.color = input$edgeColorBoot,
         vsize = input$vsizeBoot,
         layout = getLayout(input$layoutBoot),
         mar = mar
