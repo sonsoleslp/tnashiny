@@ -30,57 +30,47 @@ buildGroupModel <- function(rv, input, group) {
 
 getComparisonAllowed <- function() {
   conditionalPanel(condition = "(input.inputType != 'matrix') & (input.inputType != 'one-hot')",
-                   fluidRow(column(
-                     width = 3,
-                     fluidRow(
-                       box(
-                         title = "Comparison Settings",
-                         width = 12,
-                         selectInput("compareSelect", "Choose grouping column:", choices = NULL),
-                         selectInput("group1", "Choose group 1:", choices = NULL),
-                         selectInput("group2", "Choose group 2:", choices = NULL),
-                         input_switch("compare_sig", "Permutation test"),
-                         conditionalPanel(
-                           condition = "input.compare_sig",
-                           numericInput(
-                             "iterPerm",
-                             "Iteration:",
-                             min = 0,
-                             max = 10000,
-                             value = 1000,
-                             step = 100
-                           ),
-                           numericInput(
-                             "levelPerm",
-                             "Level:",
-                             min = 0,
-                             max = 1,
-                             value = 0.05,
-                             step = 0.01
-                           ),
-                           input_switch("pairedPerm", "Paired test")
-                         ),
-                       ),
-                       getVisualizationSettings("Group", 12, TRUE)
-                     )
-                   ),
-                   column(width = 9,
-                          fluidRow(
+                   fluidRow(
+                         box(
+                           title = "Comparison Settings",
+                           width = 12,
+                           fluidRow(
+                             column(selectInput("compareSelect", "Choose grouping column:", choices = NULL), width = 3),
+                             column(selectInput("group1", "Choose group 1:", choices = NULL), width = 3),
+                             column(selectInput("group2", "Choose group 2:", choices = NULL), width = 3),
+                             column(
+                               fluidRow(input_switch("compare_sig", "Permutation test")),
+                               fluidRow(conditionalPanel(
+                                 condition = "input.compare_sig",
+                                 column(numericInput("iterPerm", "Iteration:", min = 0, max = 10000, value = 1000, step = 100 ), width = 6),
+                                 column(numericInput("levelPerm", "Level:", min = 0, max = 1, value = 0.05, step = 0.01 ), width = 6),
+                                 column(input_switch("pairedPerm", "Paired test"), width = 6)
+                               )
+                            ), width = 3)
+                        ),
+                      )
+                  ),
+                   fluidRow(
+                    
                             tabBox(
                               id = "tabset1",
                               width = 12,
                               tabPanel("Plot",
-                                       div(
-                                         jqui_resizable(
-                                           plotOutput("comparisonPlot", 
-                                                      width = "600px", 
-                                                      height = "600px"),
-                                           # Render the TNA plot here
-                                           options = list(ghost = TRUE, 
-                                                          helper = "resizable-helper")
-                                         ),
-                                         align = "center"
-                                       )),
+                                 fluidRow(
+                                   getVisualizationSettings("Group", width = 3, TRUE),
+                                   column(
+                                     jqui_resizable(
+                                       plotOutput("comparisonPlot", 
+                                                  width = "600px", 
+                                                  height = "600px"),
+                                       # Render the TNA plot here
+                                       options = list(ghost = TRUE, 
+                                                      helper = "resizable-helper")
+                                     ),
+                                     align = "center", width = 9
+                                   )
+                                )
+                              ),
                               tabPanel(
                                 "Table",
                                 conditionalPanel(condition = "input.compare_sig",
@@ -95,18 +85,27 @@ getComparisonAllowed <- function() {
                                                  )))
                               ),
                               tabPanel("Frequencies",
-                                       div(
-                                         jqui_resizable(
-                                           plotOutput(
-                                             "comparisonFrequencies",
-                                             width = "900px",
-                                             height = "500px"
+                                       fluidRow(
+                                         column(fluidRow(
+                                           column(width = 12, checkboxInput("showLabelsFrequenciesGroup", "Show labels", value = FALSE)),
+                                           column(width = 12, selectInput("positionFrequenciesGroup", "Position", choices = c(Stacked = "stack", `Side by side`= "dodge",  `Side by side (no placeholder)`= "dodge2", Fill= "Fill"), selected = "Set3")),
+                                           column(width = 12, sliderInput("widthFrequenciesGroup", "Bar width", min = 0, max = 1, value = 0.7, step = 0.1, ticks = FALSE)),
+                                           column(width = 12, selectInput("paletteFrequenciesGroup", "Palette", choices = getPalettes(2), selected = "Set3")),
+                                           column(width = 12, checkboxInput("paletteFrequenciesGroupReverse", "Reverse Palette")
+                                          )), width = 3),
+                                         column(div(
+                                           jqui_resizable(
+                                             plotOutput(
+                                               "comparisonFrequencies",
+                                               width = "900px",
+                                               height = "500px"
+                                             ),
+                                             # Render the TNA plot here
+                                             options = list(ghost = TRUE, helper = "resizable-helper")
                                            ),
-                                           # Render the TNA plot here
-                                           options = list(ghost = TRUE, helper = "resizable-helper")
-                                         ),
-                                         align = "center"
-                                       )),
+                                           align = "center"
+                                         ), width = 9)
+                              )),
                               tabPanel("Mosaic",
                                        div(
                                          jqui_resizable(
@@ -118,40 +117,26 @@ getComparisonAllowed <- function() {
                                        )),
                               tabPanel(
                                 "Centralities",
-                                fluidRow(box(
-                                  fluidRow(
-                                    column(
-                                      width = 6,
-                                      selectInput(
-                                        "centralitiesChoiceGroup",
-                                        "Centralities",
-                                        multiple = TRUE,
-                                        choices = centralitiesList,
-                                        selected = centralitiesList
-                                      )
+                                fluidRow(
+                                  column(
+                                    fluidRow(
+                                      column(width = 12, selectInput("centralitiesChoiceGroup", "Centralities", multiple = TRUE, choices = centralitiesList, selected = centralitiesList)),
+                                      column(
+                                        width = 12,
+                                        tags$label("Properties"),
+                                        checkboxInput("loopsGroup", "Loops?", value = FALSE),
+                                        checkboxInput("normalizeGroup", "Normalize?", value = FALSE),
+                                        class = "checkboxcentralities"
+                                      ),
+                                      column(width = 12, numericInput("nColsCentralitiesGroup", "Columns", 3, min = 1, max = 9, step = 1)),
+                                      column(width = 12, selectInput("paletteCentralitiesGroup", "Palette", choices = getPalettes(2), selected = "Set3")),
+                                      column(width = 12, checkboxInput("paletteCentralitiesGroupReverse", "Reverse Palette"))
+                                      
                                     ),
-                                    column(
-                                      width = 2,
-                                      tags$label("Properties"),
-                                      checkboxInput("loopsGroup", "Loops?", value = FALSE),
-                                      checkboxInput("normalizeGroup", "Normalize?", value = FALSE),
-                                      class = "checkboxcentralities"
-                                    ),
-                                    column(
-                                      width = 2,
-                                      numericInput(
-                                        "nColsCentralitiesGroup",
-                                        "Columns",
-                                        3,
-                                        min = 1,
-                                        max = 9,
-                                        step = 1
-                                      )
-                                    )
+                                    width = 2
                                   ),
-                                  width = 12
-                                )),
-                                div(jqui_resizable(
+                                  column(
+                                    div(jqui_resizable(
                                   plotOutput(
                                     "groupCentralitiesPlot",
                                     width = "900px",
@@ -162,8 +147,7 @@ getComparisonAllowed <- function() {
                                 ),
                                 align = "center"),
                                 conditionalPanel(condition = "input.compare_sig",
-                                                 DTOutput("groupCentralitiesTable"))
-                              ),
+                                                 DTOutput("groupCentralitiesTable")), width = 10)
                               
                             )
                           ))))
@@ -292,6 +276,7 @@ renderComparison <- function(rv, input, output, session) {
           minimum = input$minimumGroup,
           label.cex = input$node.labelGroup,
           edge.label.cex = input$edge.labelGroup,
+          curveAll = input$curveAllGroup,
           colors = getPalette(input$paletteGroup, length(rv$tna_result$labels)),
           vsize = input$vsizeGroup,
           shape = input$shapeGroup,
@@ -331,7 +316,15 @@ renderComparison <- function(rv, input, output, session) {
     req(rv$tna_result)
     tryCatch({
       group_tnad <- buildGroupModel(rv, input, input$compareSelect)
-      plot_frequencies(group_tnad)
+      palette <- getPalette(input$paletteFrequenciesGroup, length(group_tnad))
+      if (input$paletteFrequenciesGroupReverse) {
+        palette <- rev(palette)
+      }
+      plot_frequencies(group_tnad, 
+                       colors = palette, 
+                       width = input$widthFrequenciesGroup,
+                       show_label = input$showLabelsFrequenciesGroup,
+                       position = input$positionFrequenciesGroup)
       
     }, warning = function(w) {
       print(w)
@@ -345,8 +338,13 @@ renderComparison <- function(rv, input, output, session) {
   
   output$groupCentralitiesPlot <- renderPlot({
     req(rv$tna_result)
+     
     tryCatch({
       group_tnad <- buildGroupModel(rv, input, input$compareSelect)
+      palette <- getPalette(input$paletteCentralitiesGroup, length(group_tnad))
+      if (input$paletteCentralitiesGroupReverse) {
+        palette <- rev(palette)
+      }
       plot(
         centralities(
           group_tnad,
@@ -354,9 +352,9 @@ renderComparison <- function(rv, input, output, session) {
           normalize = input$normalizeGroup,
           loops =  input$loopsGroup
         ),
-        ncol = input$nColsCentralitiesGroup
+        ncol = input$nColsCentralitiesGroup,
+        colors = palette
       )
-      
     }, warning = function(w) {
       print(w)
       logjs(w)

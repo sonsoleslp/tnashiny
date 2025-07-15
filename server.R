@@ -3,6 +3,9 @@ library(DT)
 library(tna)
 library(rio)
 library(shinyjs)
+library(shinyBS)
+library(colourpicker)
+library(sortable)
 
 # For arranging multiple plots
 set.seed(19)

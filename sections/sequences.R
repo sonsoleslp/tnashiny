@@ -9,11 +9,11 @@ getSAAllowed <- function() {
                                # textInput("titleSequence", "Plot Title" ),
                                textInput("xAxisSequence", "Title x-axis", value = "Time"),
                                textInput("yAxisSequence", "Title y-axis" ),
-                               textInput("legendSequence", "Legend title" ),
+                               # textInput("legendSequence", "Legend title" ),
                                # checkboxInput("showNSequence", "No. of observations", value = FALSE),
                                numericInput("tickSequence", "Tick frequency", value = 5),
                                numericInput("ncolSequence", "Columns", value = 2, min = 0, max = 100),
-                               checkboxInput("borderSequence", "Border", value = FALSE),
+                               # checkboxInput("borderSequence", "Border", value = FALSE),
                                checkboxInput("include_naSequence", "Include empty values", value = FALSE),
                        ),
                        box(title = "Sequence plot", width = 9,
@@ -32,7 +32,7 @@ getSANotAllowed <- function() {
      box(
        span(
          icon("circle-info", class = "text-danger"),
-         "Sequence analysis is only supported when the full data is provided"
+         "Sequence analysis is only supported when wide or long data are provided"
        ),
        width = 7
      )
@@ -45,7 +45,6 @@ renderSequencePlots <- function(rv, input, output, session) {
     
     # Plot centrality measures
     tryCatch({
-      
       theModel <- rv$tna_result
       group <- rlang::missing_arg()
       if (!is.null(input$groupSequence) & (input$groupSequence != " ")) {
@@ -53,20 +52,20 @@ renderSequencePlots <- function(rv, input, output, session) {
         group <- input$groupSequence
       }
       p <- plot_sequences(theModel,
-                          group = group,
                           type = input$typeSequence,
                           # show_n = input$showNSequence,
-                          border = input$borderSequence,
+                          # border = input$borderSequence,
                           scale = input$scaleSequence,
                           xlab = input$xAxisSequence,
                           ylab = input$yAxisSequence,
-                          legend_title = input$legendSequence,
+                          # legend_title = input$legendSequence,
                           # title = input$titleSequence,
                           tick = input$tickSequence,
                           ncol = input$ncolSequence,
                           include_na = input$include_naSequence) + 
         ggplot2::theme(legend.position = "bottom", 
-                       title = ggplot2::element_blank()) 
+                       legend.ticks = ggplot2::element_blank(),
+                       plot.title = ggplot2::element_blank()) 
       if (input$paletteSequence != "Default") {
         p <- p + ggplot2::scale_fill_brewer(palette = input$paletteSequence)
       }

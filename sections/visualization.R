@@ -1,4 +1,5 @@
 library(colourpicker)
+
 availableLayouts = c("circle","spring","star","tree","nicely","grid","random","dh","fr","gem","graphopt","kk","lgl")
 
 getVisualizationSettings <- function (prefix, width = 3, twoColors = FALSE) {
@@ -19,7 +20,8 @@ getVisualizationSettings <- function (prefix, width = 3, twoColors = FALSE) {
         sliderInput(paste0("minimum", prefix), "Minimum Value", min = 0, max = 1, value = 0.05, step = 0.01, ticks = FALSE),
         sliderInput(paste0("edge.label", prefix), "Edge label size", min = 0, max = 10, value = 1, step = 0.1, ticks = FALSE),
         sliderInput(paste0("vsize", prefix), "Node  size", min = 0, max = 30, value = 8, step = 0.1, ticks = FALSE),
-        sliderInput(paste0("node.label", prefix), "Node label size", min = 0, max = 10, value = 1, step = 0.1, ticks = FALSE)
+        sliderInput(paste0("node.label", prefix), "Node label size", min = 0, max = 10, value = 1, step = 0.1, ticks = FALSE),
+        checkboxInput(paste0("curveAll", prefix), "Curved edges?", value = FALSE)
     )
 }
 

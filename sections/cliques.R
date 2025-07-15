@@ -60,6 +60,7 @@ renderCliqueResults <- function(rv, input, output, session) {
             label.cex = input$node.labelClique,
             edge.color = input$edgeColorClique,
             edge.label.cex = input$edge.labelClique,
+            curveAll = input$curveAllClique,
             vsize = input$vsizeClique,
             colors = getPalette(input$paletteClique, length(rv$tna_result$labels)),
             layout = getLayout(input$layoutClique),

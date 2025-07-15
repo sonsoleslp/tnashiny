@@ -1,8 +1,9 @@
 getValidationAllowed <- function() {
-  conditionalPanel(condition = "input.inputType & (input.inputType != 'matrix') & (input.inputType != 'one-hot')",
+  
+  conditionalPanel(condition = "(input.inputType != 'matrix') & (input.inputType != 'one-hot')",
   fluidRow(
     tabBox(
-       id = "tabset2", 
+       id = "tabset1", 
        width = 12,
        tabPanel("Bootstrapping", 
          fluidRow(
@@ -84,7 +85,7 @@ getValidationNotAllowed <- function() {
        box(
          span(
            icon("circle-info", class = "text-danger"),
-           "Validation operations are only supported when the full data is provided"
+           "Validation operations are only supported when long or wide data are provided"
          ),
          width = 7
        )
@@ -136,6 +137,7 @@ renderValidation <- function(rv, input, output, session) {
         shape = input$shapeBoot,
         label.cex = input$node.labelBoot,
         edge.label.cex = input$edge.labelBoot,
+        curveAll = input$curveAllBoot,
         edge.color = input$edgeColorBoot,
         vsize = input$vsizeBoot,
         layout = getLayout(input$layoutBoot),

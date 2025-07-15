@@ -1,7 +1,6 @@
-library(sortable)
 library(shinyBS)
 library(DT)
-
+library(colourpicker)
 
 getInputData <- function() {
   fluidRow(

@@ -1,9 +1,14 @@
-getPalettes <- function(n) {
+getPalettes <- function(n, noWhite = FALSE) {
   palettes <- data.frame(RColorBrewer::brewer.pal.info) |> 
     dplyr::filter(maxcolors >= n) 
   palettes$category <- factor(palettes$category, levels = c("qual", "div", "seq")) 
   palettes <- dplyr::arrange(palettes, category)
-  c("Default", rownames(palettes), "White")
+  if(noWhite) {
+    c("Default", rownames(palettes), "White")
+  } else {
+    c("Default", rownames(palettes))
+  }
+  
 } 
 
 
@@ -13,7 +18,10 @@ getPalette <- function(palette, n) {
   } else if (palette == "White") {
     "white"
   } else {
-    suppressWarnings(RColorBrewer::brewer.pal(n, palette))
+    pal <- suppressWarnings(RColorBrewer::brewer.pal(n, palette))
+    if ((n == 2) & (length(pal) == 3)) {
+      c(pal[1],pal[3])
+    }
   }
 }
 

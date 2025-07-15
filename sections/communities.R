@@ -68,6 +68,7 @@ renderCommunityResults <- function(rv, input, output, session) {
         label.cex = input$node.labelCom,
         edge.color = input$edgeColorCom,
         edge.label.cex = input$edge.labelCom,
+        curveAll = input$curveAllCom,
         vsize = input$vsizeCom,
         shape = input$shapeCom,
         colors = getPalette(input$paletteCom, rv$community_result$counts[[selected_algorithm]]),

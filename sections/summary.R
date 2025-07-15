@@ -84,6 +84,7 @@ renderSummaryResults <- function(rv, input, output, session) {
         label.cex = input$node.label,
         edge.label.cex = input$edge.label,
         edge.color = input$edgeColor,
+        curveAll = input$curveAll,
         vsize = input$vsize,
         layout = getLayout(input$layout),
         colors = getPalette(input$palette, length(rv$tna_result$labels)),

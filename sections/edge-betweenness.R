@@ -11,6 +11,7 @@ renderEdgeBetweenness <- function(rv, input, output, session) {
         label.cex = input$node.labelEbet,
         edge.label.cex = input$edge.labelEbet,
         edge.color = input$edgeColorEbet,
+        curveAll = input$curveAllEbet,
         vsize = input$vsizeEbet,
         shape = input$shapeEbet,
         layout = getLayout(input$layoutEbet),
